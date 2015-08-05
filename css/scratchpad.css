@@ -1,0 +1,23 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+#messageList {
+  position: fixed;
+  top: 0px;
+  bottom: 0px;
+  width: 120px;
+  background: linear-gradient(teal, white);
+}
+
+#messagePane {
+  margin-left: 125px;
+  display: flex;
+  flex-direction: column;
+}
+
+#message {
+  min-height: 425px;
+  background: linear-gradient(to right, white, grey);
+}
