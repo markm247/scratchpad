@@ -1,5 +1,5 @@
 "use strict";
-
+var CONST_CLICKMESSAGE = "clickMessage"
 var Dispatcher = require('react-dispatcher');
 var AppDispatcher = new Dispatcher();
 var messageStore = {
@@ -12,7 +12,28 @@ var messageStore = {
   getCurrentMessage: function() {return this.currentMessage; }
 };
 
-AppDispatcher.register(function(payload) { console.log(payload); });
+var eventEmitter = {
+  events: [],
+  registerEvent: function(eventName, callback) {
+    this.events.push({"eventName": eventName, "callback": callback});
+  },
+  emit: function(eventName) {
+    for(var n in this.events) { console.log(this.events[n]); }
+  }
+}
+
+eventEmitter.registerEvent('woot', 'woot');
+eventEmitter.emit();
+
+AppDispatcher.register(function(payload) {
+  switch (payload.eventName) {
+    case CONST_CLICKMESSAGE:
+      messageStore.currentMessage = payload.currentMessage;
+      break;
+    default:
+
+  }
+});
 
 class App extends React.Component {
   constructor(props) {
@@ -47,10 +68,10 @@ class MessageList extends React.Component {
 
 class MessageListItem extends React.Component {
   clickMessage() {
-    AppDispatcher.dispatch({"eventName": "clickMessage", "currentMessage": 55})
+    AppDispatcher.dispatch({"eventName": CONST_CLICKMESSAGE, "currentMessage": this.props.messageID})
   }
   render() {
-    return <div onClick={this.clickMessage}>{this.props.subject}</div>;
+    return <div onClick={this.clickMessage.bind(this)}>{this.props.subject}</div>;
   }
 }
 
