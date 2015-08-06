@@ -14,12 +14,18 @@ var Dispatcher = require('react-dispatcher');
 var AppDispatcher = new Dispatcher();
 var messageStore = {
   messages: [{ messageID: 0, subject: 'woot', body: 'woo woo!' }, { messageID: 1, subject: 'boot', body: 'boo boo!' }],
-  currentMessage: 0,
+  currentMessageID: 0,
   getMessages: function getMessages() {
     return this.messages;
   },
-  getCurrentMessage: function getCurrentMessage() {
-    return this.currentMessage;
+  getCurrentMessageID: function getCurrentMessageID() {
+    return this.currentMessageID;
+  },
+  setCurrentMessageID: function setCurrentMessageID(messageID) {
+    this.currentMessageID = messageID;console.log("new ID = " + this.currentMessageID);
+  },
+  getCurrentMessageBody: function getCurrentMessageBody() {
+    console.log(this.currentMessageID);return this.messages[this.currentMessageID].body;
   }
 };
 
@@ -30,18 +36,21 @@ var eventEmitter = {
   },
   emit: function emit(eventName) {
     for (var n in this.events) {
-      console.log(this.events[n]);
+      if (this.events[n].eventName == eventName) {
+        this.events[n].callback();
+      }
     }
   }
 };
 
-eventEmitter.registerEvent('woot', 'woot');
-eventEmitter.emit();
+eventEmitter.emit('woot');
 
 AppDispatcher.register(function (payload) {
   switch (payload.eventName) {
     case CONST_CLICKMESSAGE:
-      messageStore.currentMessage = payload.currentMessage;
+      console.log(payload.currentMessage);
+      messageStore.setCurrentMessageID(payload.currentMessage);
+      eventEmitter.emit("currentMessageChanged");
       break;
     default:
 
@@ -55,18 +64,29 @@ var App = (function (_React$Component) {
     _classCallCheck(this, App);
 
     _get(Object.getPrototypeOf(App.prototype), "constructor", this).call(this, props);
-    this.state = { messages: messageStore.getMessages(), currentMessage: messageStore.getCurrentMessage() };
-    console.log(this.state);
+    this.state = { messages: messageStore.getMessages(), currentMessageID: messageStore.getCurrentMessageID(), currentMessageBody: messageStore.getCurrentMessageBody() };
+    this._onChange = this._onChange.bind(this);
   }
 
   _createClass(App, [{
+    key: "_onChange",
+    value: function _onChange() {
+      this.setState({ messages: messageStore.getMessages(), currentMessageID: messageStore.getCurrentMessageID(), currentMessageBody: messageStore.getCurrentMessageBody() });
+      console.log("body: " + this.state.currentMessageBody);
+    }
+  }, {
+    key: "componentDidMount",
+    value: function componentDidMount() {
+      eventEmitter.registerEvent('currentMessageChanged', this._onChange);
+    }
+  }, {
     key: "render",
     value: function render() {
       return React.createElement(
         "div",
         { id: "app" },
-        React.createElement(MessageList, { messages: this.state.messages, currentMessage: this.state.currentMessage }),
-        React.createElement(MessagePane, { messages: this.state.messages, currentMessage: this.state.currentMessage })
+        React.createElement(MessageList, { messages: this.state.messages, currentMessageID: this.state.currentMessageID }),
+        React.createElement(MessagePane, { messages: this.state.messages, currentMessageBody: this.state.currentMessageBody })
       );
     }
   }]);
@@ -77,10 +97,10 @@ var App = (function (_React$Component) {
 var MessagePane = (function (_React$Component2) {
   _inherits(MessagePane, _React$Component2);
 
-  function MessagePane() {
+  function MessagePane(props) {
     _classCallCheck(this, MessagePane);
 
-    _get(Object.getPrototypeOf(MessagePane.prototype), "constructor", this).apply(this, arguments);
+    _get(Object.getPrototypeOf(MessagePane.prototype), "constructor", this).call(this, props);
   }
 
   _createClass(MessagePane, [{
@@ -89,7 +109,7 @@ var MessagePane = (function (_React$Component2) {
       return React.createElement(
         "div",
         { id: "messagePane" },
-        React.createElement(Message, null),
+        React.createElement(Message, { currentMessageBody: this.props.currentMessageBody }),
         React.createElement(MessageComments, null)
       );
     }
@@ -135,6 +155,7 @@ var MessageListItem = (function (_React$Component4) {
   _createClass(MessageListItem, [{
     key: "clickMessage",
     value: function clickMessage() {
+      console.log("message clicked");
       AppDispatcher.dispatch({ "eventName": CONST_CLICKMESSAGE, "currentMessage": this.props.messageID });
     }
   }, {
@@ -166,7 +187,7 @@ var Message = (function (_React$Component5) {
       return React.createElement(
         "div",
         { id: "message" },
-        "Message"
+        this.props.currentMessageBody
       );
     }
   }]);

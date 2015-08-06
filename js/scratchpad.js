@@ -1,5 +1,6 @@
 "use strict";
-var CONST_CLICKMESSAGE = "clickMessage"
+
+var CONST_CLICKMESSAGE = "clickMessage";
 var Dispatcher = require('react-dispatcher');
 var AppDispatcher = new Dispatcher();
 var messageStore = {
@@ -7,9 +8,11 @@ var messageStore = {
     {messageID: 0, subject: 'woot', body: 'woo woo!'},
     {messageID: 1, subject: 'boot', body: 'boo boo!'}
   ],
-  currentMessage: 0,
+  currentMessageID: 0,
   getMessages: function() {return this.messages;},
-  getCurrentMessage: function() {return this.currentMessage; }
+  getCurrentMessageID: function() {return this.currentMessageID; },
+  setCurrentMessageID: function(messageID) { this.currentMessageID = messageID; console.log("new ID = " + this.currentMessageID); },
+  getCurrentMessageBody: function() { console.log(this.currentMessageID); return this.messages[this.currentMessageID].body; }
 };
 
 var eventEmitter = {
@@ -18,17 +21,22 @@ var eventEmitter = {
     this.events.push({"eventName": eventName, "callback": callback});
   },
   emit: function(eventName) {
-    for(var n in this.events) { console.log(this.events[n]); }
+    for(var n in this.events) {
+      if(this.events[n].eventName == eventName) {
+        this.events[n].callback();
+      }
+    }
   }
-}
+};
 
-eventEmitter.registerEvent('woot', 'woot');
-eventEmitter.emit();
+eventEmitter.emit('woot');
 
 AppDispatcher.register(function(payload) {
   switch (payload.eventName) {
     case CONST_CLICKMESSAGE:
-      messageStore.currentMessage = payload.currentMessage;
+      console.log(payload.currentMessage);
+      messageStore.setCurrentMessageID(payload.currentMessage);
+      eventEmitter.emit("currentMessageChanged");
       break;
     default:
 
@@ -38,21 +46,30 @@ AppDispatcher.register(function(payload) {
 class App extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { messages: messageStore.getMessages(), currentMessage: messageStore.getCurrentMessage() };
-    console.log(this.state);
+    this.state = { messages: messageStore.getMessages(), currentMessageID: messageStore.getCurrentMessageID(), currentMessageBody: messageStore.getCurrentMessageBody() };
+    this._onChange = this._onChange.bind(this);
+  }
+  _onChange() {
+    this.setState({messages: messageStore.getMessages(), currentMessageID: messageStore.getCurrentMessageID(), currentMessageBody: messageStore.getCurrentMessageBody() });
+  }
+  componentDidMount() {
+    eventEmitter.registerEvent('currentMessageChanged', this._onChange);
   }
   render() {
     return  <div id='app'>
-              <MessageList messages={this.state.messages} currentMessage={this.state.currentMessage} />
-              <MessagePane messages={this.state.messages} currentMessage={this.state.currentMessage} />
+              <MessageList messages={this.state.messages} currentMessageID={this.state.currentMessageID} />
+              <MessagePane messages={this.state.messages} currentMessageBody={this.state.currentMessageBody} />
             </div>;
   }
 }
 
 class MessagePane extends React.Component {
+  constructor(props) {
+    super(props);
+  }
   render() {
     return  <div id='messagePane'>
-              <Message />
+              <Message currentMessageBody={this.props.currentMessageBody} />
               <MessageComments />
             </div>;
   }
@@ -77,7 +94,7 @@ class MessageListItem extends React.Component {
 
 class Message extends React.Component {
   render() {
-    return <div id='message'>Message</div>;
+    return <div id='message'>{this.props.currentMessageBody}</div>;
   }
 }
 
